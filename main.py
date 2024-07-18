@@ -197,7 +197,6 @@ def odbitCheck():
                         #UNFINISHED!!!
 
 
-
 startGame()
 #table_atk = [{"Color": 'clubs', "Value": 24, "Name": "A 8-*"}]
 attack(1)
