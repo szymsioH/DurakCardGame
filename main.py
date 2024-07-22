@@ -48,7 +48,7 @@ def cardTransfer(what, from_p, to_p):
 
 
 # Function that grants us vision of our cards and the table via cmd
-def vision():
+def vision_full():
     # print("\033[H\033[J", end="")
     print("\nTrump card: " + gl_col)
     print("Table:")
@@ -58,7 +58,10 @@ def vision():
     print([p["Name"] for p in players_hand])
     print("Bobby: ", [p["Name"] for p in bobbys_hand])
 
-
+def vision_hand():
+    print("Your hand: ")
+    print([p["Name"] for p in players_hand])
+    print("Bobby: ", [p["Name"] for p in bobbys_hand])
 # Function that enables us to start a game
 def startGame():
     shuffle(deck)
@@ -94,7 +97,7 @@ def attack(who):
             print("\n++ Bobby attacked with: " + table_atk[len(table_atk) - 1]["Name"] + "! ++")
             who_atkd = False
             p_atk_phase = False
-    vision()
+    vision_full()
     if not p_atk_phase:
         defense()
     if breaker: return
@@ -132,7 +135,7 @@ def defense():
                     cardTransfer(table_def[0], table_def, players_hand)
                 print("\n== You have to take the cards! ==")
                 players_hand.sort(key=lambda x: x["Value"])
-                vision()
+                vision_full()
                 if_odbit = False
                 p_def_phase = False
                 who_atkd = True
@@ -156,16 +159,16 @@ def defense():
                     checkCard(table_atk[len(table_atk) - 1], players_hand[int(picked_def) - 1])
                     if can_def:
                         cardTransfer(players_hand[int(picked_def) - 1], players_hand, table_def)
-                        vision()
+                        vision_full()
                         if_odbit = True
                         p_def_phase = False
                     else:
                         print("\n== Can't defend with that card, pick correct one or \'take\' ==")
-                        vision()
+                        vision_full()
                 else:
                     print("== Wrong value, pick a card to defend, or take the table (from 1 to " + str(
                         len(players_hand)) + ", or \'take\') ==")
-                    vision()
+                    vision_full()
         elif who_atkd:  # BOBBY DEFENDS
             can_def_cards = []
             for p in bobbys_hand:
@@ -185,7 +188,7 @@ def defense():
             elif len(can_def_cards) != 0:
                 cardTransfer(bobbys_hand[bobbys_hand.index(can_def_cards[0])], bobbys_hand, table_def)
                 print("\n++ Bobby defended with " + table_def[len(table_def) - 1]["Name"] + "! ++")
-                vision()
+                vision_full()
                 if_odbit = True
             p_def_phase = False
     if if_odbit:
@@ -221,11 +224,11 @@ def discards():
     while if_odbit:
         if who_atkd == True and (len(table_atk) != 0 and len(table_def) != 0):  # PLAYER DISCARDS
             if (not checkForSim(players_hand, table_atk) and not checkForSim(players_hand, table_def)) \
-                    or len(table_atk) == 5:
+                    or len(table_atk) == 5 or len(bobbys_hand) <= 1:
                 table_atk.clear()
                 table_def.clear()
                 print("\n== Cards are discarded, can't counter ==")
-                vision()
+                #vision_hand()
                 if_odbit = False
                 endOfTurn()
             else:
@@ -245,26 +248,26 @@ def discards():
                 if odbit == "odbit" or odbit == "o":
                     table_atk.clear()
                     table_def.clear()
-                    vision()
+                    vision_full()
                     if_odbit = False
                     who_atkd = True
                     endOfTurn()
                 elif (odbit.isdigit() == True) and (int(odbit) in range(1, len(players_hand) + 1)) and \
                         (len(cards_to_counter) > 0) and (players_hand[int(odbit) - 1] in cards_to_counter):
                     cardTransfer(players_hand[int(odbit) - 1], players_hand, table_atk)
-                    vision()
+                    vision_full()
                     who_atkd = True
                     defense()
                 else:
                     print("\n== You can't do that! ==")
-                    vision()
+                    vision_full()
         elif not who_atkd:  # BOBBY DISCARDS
             if (not checkForSim(bobbys_hand, table_atk) and not checkForSim(bobbys_hand, table_def)) \
-                    or len(table_atk) == 5:
+                    or len(table_atk) == 5 or len(players_hand) <= 1:
                 table_atk.clear()
                 table_def.clear()
                 print("\n++ Cards are discarded ++")
-                vision()
+                #vision_hand()
                 if_odbit = False
                 who_atkd = False
                 endOfTurn()
@@ -284,7 +287,7 @@ def discards():
                 cards_to_counter.sort(key=lambda x: x["Value"])
                 cardTransfer(bobbys_hand[bobbys_hand.index(cards_to_counter[0])], bobbys_hand, table_atk)
                 print("\n++ Bobby counter attacked with " + table_atk[len(table_atk) - 1]["Name"] + "! ++")
-                vision()
+                vision_full()
                 who_atkd = False
                 defense()
     if breaker: return
@@ -315,7 +318,7 @@ def endOfTurn():
     elif deck_empty:
         print("\n== End of turn. Deck empty. You drew " + str(0) + " cards ==")
     print(len(deck))
-    vision()
+    vision_hand()
     breaker = True
     return
 
