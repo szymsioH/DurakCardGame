@@ -19,12 +19,11 @@ for col in cards_dict.get("Color"):
 shuffle(deck)
 gl_card = deck[len(deck) - 1]
 gl_col = gl_card["Color"]
-# print(gl_col)
+
 for i in range(len(deck)):
     if deck[i]["Color"] == gl_col:
         deck[i]["Value"] = deck[i]["Value"] + 10
         deck[i]["Name"] = deck[i]["Name"] + "*"
-# print(deck)
 
 players_hand = []
 bobbys_hand = []
@@ -49,19 +48,22 @@ def cardTransfer(what, from_p, to_p):
 
 # Function that grants us vision of our cards and the table via cmd
 def vision_full():
-    # print("\033[H\033[J", end="")
-    print("\nTrump card: " + gl_col)
+    print("\nTrump card: |" + gl_card.get("Name") + "|")
     print("Table:")
     print("D: ", [p["Name"] for p in table_def])
     print("A: ", [p["Name"] for p in table_atk])
-    print("Your hand: ")
-    print([p["Name"] for p in players_hand])
-    print("Bobby: ", [p["Name"] for p in bobbys_hand])
+    print("Your hand: ", [p["Name"] for p in players_hand])
+    #print("Bobby: ", [p["Name"] for p in bobbys_hand])
+    print("Bobby has ", len(bobbys_hand), " cards")
 
+
+# Function that grants us vision of our cards via cmd
 def vision_hand():
-    print("Your hand: ")
-    print([p["Name"] for p in players_hand])
-    print("Bobby: ", [p["Name"] for p in bobbys_hand])
+    print("\nYour hand: ", [p["Name"] for p in players_hand])
+    #print("Bobby: ", [p["Name"] for p in bobbys_hand])
+    print("Bobby has ", len(bobbys_hand), " cards")
+
+
 # Function that enables us to start a game
 def startGame():
     shuffle(deck)
@@ -72,8 +74,53 @@ def startGame():
     print("Your hand: ")
     print([p["Name"] for p in players_hand])
 
-    # print("Bobby: ", [p["Name"] for p in bobbys_hand])
-    # print(len(deck))
+
+
+#Function that checks for cards of similar value
+def checkForSim(hand, table):
+    global sim_card_list
+    sim_card_list = []
+    sim_card_list.clear()
+    for t in range(1, len(table) + 1):
+        for c in range(1, len(hand) + 1):
+            if hand[c - 1]["Value"] == table[t - 1]["Value"] or \
+                    (hand[c - 1]["Color"] == gl_col and hand[c - 1]["Value"] == table[t - 1]["Value"] + 10) or \
+                    (table[t - 1]["Color"] == gl_col and hand[c - 1]["Value"] == table[t - 1]["Value"] - 10):
+                sim_card_list.append(hand[c - 1])
+    if len(sim_card_list) != 0:
+        return True
+
+
+#Functions that enables attacks with multiple cards at once
+def someMore(bot_or_not):
+    if bot_or_not == 'player':
+        if any(d.get("Value") == table_atk[len(table_atk) - 1]["Value"] for d in sim_card_list) or \
+               any((d.get("Value") - 10) == table_atk[len(table_atk) - 1]["Value"] for d in sim_card_list) or \
+               any((d.get("Value") + 10) == table_atk[len(table_atk) - 1]["Value"] for d in sim_card_list):
+            vision_hand()
+            one_more = input("\nDo you want to attack with more cards? Type 'no' or the number of a card (1 to " + str(len(players_hand)) + "): ")
+            if one_more == 'no' or one_more == 'n':
+                return False
+            elif (int(one_more) in list(range(1, len(players_hand) + 1))) and \
+                    players_hand[int(one_more) - 1] in sim_card_list:
+                cardTransfer(players_hand[int(one_more) - 1], players_hand, table_atk)
+                sim_card_list.remove(sim_card_list[sim_card_list.index(table_atk[len(table_atk) - 1])])
+                return True
+            else:
+                return False
+        else:
+            return False
+    elif bot_or_not == 'bobby':
+        if any((table_atk[len(table_atk) - 1]["Value"] == d.get("Value") for d in sim_card_list) or \
+               (table_atk[len(table_atk) - 1]["Value"] == d.get("Value") - 10 for d in sim_card_list) or \
+               (table_atk[len(table_atk) - 1]["Value"] == d.get("Value") + 10 for d in sim_card_list)):
+            for card in range(0, len(sim_card_list)):
+                vision_full()
+                cardTransfer(bobbys_hand[bobbys_hand.index(sim_card_list[0])], bobbys_hand, table_atk)
+                sim_card_list.remove(sim_card_list[0])
+            return True
+        else:
+            return False
 
 
 # Function that realizes an attack sequence for a player or Bobby
@@ -83,10 +130,14 @@ def attack(who):
     p_atk_phase = True
     while p_atk_phase:
         if not who:  # PLAYER
+            vision_hand()
             picked_atk = int(
                 input("\nPick a number of a card you want to play (from 1 to " + str(len(players_hand)) + "): "))
             if picked_atk in list(range(1, len(players_hand) + 1)):
                 cardTransfer(players_hand[picked_atk - 1], players_hand, table_atk)
+                checkForSim(players_hand, table_atk)
+                while someMore('player'):
+                    someMore('player')
                 who_atkd = True
                 p_atk_phase = False
             else:
@@ -94,7 +145,12 @@ def attack(who):
         elif who:  # BOBBY
             bobbys_hand.sort(key=lambda x: x["Value"])
             cardTransfer(bobbys_hand[0], bobbys_hand, table_atk)
-            print("\n++ Bobby attacked with: " + table_atk[len(table_atk) - 1]["Name"] + "! ++")
+            checkForSim(bobbys_hand, table_atk)
+            someMore('bobby')
+            if len(table_atk) == 1:
+                print("\n++ Bobby attacked with:", table_atk[0]["Name"], "! ++")
+            else:
+                print("\n++ Bobby attacked with:", [d.get("Name") for d in table_atk], "! ++")
             who_atkd = False
             p_atk_phase = False
     vision_full()
@@ -139,37 +195,40 @@ def defense():
                 if_odbit = False
                 p_def_phase = False
                 who_atkd = True
-                endOfTurn()
             else:
-                picked_def = input("\nPick a card to defend, or take the table (from 1 to " + str(
-                    len(players_hand)) + ", or \'take\'): ")
-                if picked_def == 'take' or picked_def == 't':
-                    for j in range(0, len(table_atk)):
-                        cardTransfer(table_atk[0], table_atk, players_hand)
-                    for j in range(0, len(table_def)):
-                        cardTransfer(table_def[0], table_def, players_hand)
-                    print("\n== You have taken the cards! ==")
-                    players_hand.sort(key=lambda x: x["Value"])
-                    # vision()
-                    if_odbit = False
-                    p_def_phase = False
-                    who_atkd = True
-                    endOfTurn()
-                elif picked_def.isdigit() == True and int(picked_def) in range(1, len(players_hand) + 1):
-                    checkCard(table_atk[len(table_atk) - 1], players_hand[int(picked_def) - 1])
-                    if can_def:
-                        cardTransfer(players_hand[int(picked_def) - 1], players_hand, table_def)
-                        vision_full()
-                        if_odbit = True
+                atk_card_idx = 0
+                while len(table_atk) > len(table_def):
+                    picked_def = input("\nPick a card to defend against " + table_atk[atk_card_idx]["Name"] +
+                                       ", or take the table (from 1 to " + str(len(players_hand)) + ", or \'take\'): ")
+                    if picked_def == 'take' or picked_def == 't':
+                        for j in range(0, len(table_atk)):
+                            cardTransfer(table_atk[0], table_atk, players_hand)
+                        for j in range(0, len(table_def)):
+                            cardTransfer(table_def[0], table_def, players_hand)
+                        print("\n== You have taken the cards! ==")
+                        players_hand.sort(key=lambda x: x["Value"])
+                        if_odbit = False
                         p_def_phase = False
+                        who_atkd = True
+                        break
+                    elif picked_def.isdigit() == True and int(picked_def) in range(1, len(players_hand) + 1):
+                        checkCard(table_atk[len(table_def)], players_hand[int(picked_def) - 1])
+                        if can_def:
+                            cardTransfer(players_hand[int(picked_def) - 1], players_hand, table_def)
+                            vision_full()
+                            if len(table_atk) == len(table_def):
+                                if_odbit = True
+                                p_def_phase = False
+                        else:
+                            print("\n== Can't defend with that card, pick correct one or \'take\' ==")
+                            vision_full()
                     else:
-                        print("\n== Can't defend with that card, pick correct one or \'take\' ==")
+                        print("== Wrong value, pick a card to defend, or take the table (from 1 to " + str(
+                            len(players_hand)) + ", or \'take\') ==")
                         vision_full()
-                else:
-                    print("== Wrong value, pick a card to defend, or take the table (from 1 to " + str(
-                        len(players_hand)) + ", or \'take\') ==")
-                    vision_full()
+                    atk_card_idx = atk_card_idx + 1
         elif who_atkd:  # BOBBY DEFENDS
+            bobbys_hand.sort(key=lambda x: x["Value"])
             can_def_cards = []
             for p in bobbys_hand:
                 checkCard(table_atk[len(table_atk) - 1], p)
@@ -177,44 +236,24 @@ def defense():
                     can_def_cards.append(p)
                     can_def_cards.sort(key=lambda x: x["Value"])
             if len(can_def_cards) == 0:
-                # print("\nAAAAAAA ", table_atk)
                 for j in range(0, len(table_atk)): cardTransfer(table_atk[0], table_atk, bobbys_hand)
                 for j in range(0, len(table_def)): cardTransfer(table_def[0], table_def, bobbys_hand)
-                print("\n++ Bobby took the card! ++")
-                # vision()
+                print("\n++ Bobby took the cards! ++")
                 if_odbit = False
                 who_atkd = False
-                endOfTurn()
+                p_def_phase = False
             elif len(can_def_cards) != 0:
                 cardTransfer(bobbys_hand[bobbys_hand.index(can_def_cards[0])], bobbys_hand, table_def)
                 print("\n++ Bobby defended with " + table_def[len(table_def) - 1]["Name"] + "! ++")
                 vision_full()
-                if_odbit = True
-            p_def_phase = False
+                if len(table_atk) == len(table_def):
+                    if_odbit = True
+                    p_def_phase = False
     if if_odbit:
         discards()
     elif not if_odbit:
         endOfTurn()
     if breaker: return
-
-
-#Function that checks for cards of similar value
-def checkForSim(hand, table):
-    global sim_card_list
-    sim_card_list = []
-    sim_card_list.clear()
-    for t in range(1, len(table) + 1):
-        for c in range(1, len(hand) + 1):
-            #print(len(hand) + 1)
-            if hand[c - 1]["Value"] == table[t - 1]["Value"] or \
-                    (hand[c - 1]["Color"] == gl_col and hand[c - 1]["Value"] == table[t - 1]["Value"] + 10) or \
-                    (table[t - 1]["Color"] == gl_col and hand[c - 1]["Value"] == table[t - 1]["Value"] - 10):
-                sim_card_list.append([hand[c - 1]])
-            #else: return False
-            #print(sim_card_list)
-    if len(sim_card_list) != 0:
-        return True
-        return False
 
 
 #Function realiseing discard phase (counter attacking or discarding the table)
@@ -228,13 +267,11 @@ def discards():
                 table_atk.clear()
                 table_def.clear()
                 print("\n== Cards are discarded, can't counter ==")
-                #vision_hand()
                 if_odbit = False
                 endOfTurn()
             else:
-                # cards_to_counter.clear
-                cards_to_counter = []
 
+                cards_to_counter = []
                 for c in players_hand:
                     for t in table_atk:
                         if c["Value"] == t["Value"] or c["Value"] == t["Value"] + 10 or c["Value"] == t["Value"] - 10:
@@ -267,12 +304,10 @@ def discards():
                 table_atk.clear()
                 table_def.clear()
                 print("\n++ Cards are discarded ++")
-                #vision_hand()
                 if_odbit = False
                 who_atkd = False
                 endOfTurn()
             else:
-                # cards_to_counter.clear
                 cards_to_counter = []
 
                 for c in bobbys_hand:
@@ -314,17 +349,16 @@ def endOfTurn():
                 deck_empty = True
         bobbys_hand.sort(key=lambda x: x["Value"])
     if not deck_empty:
-        print("\n== End of turn. You drew " + str(max(p_draw, 0)) + " cards ==")
+        print("\n== End of turn. You drew " + str(max(p_draw, 0)) + " cards ==\n")
     elif deck_empty:
-        print("\n== End of turn. Deck empty. You drew " + str(0) + " cards ==")
-    print(len(deck))
-    vision_hand()
+        print("\n== End of turn. Deck empty. You drew " + str(0) + " cards ==\n")
+    print(len(deck), " cards left")
+    #vision_hand()
     breaker = True
     return
 
 
 startGame()
-# table_atk = [{"Color": 'clubs', "Value": 24, "Name": "A 8-*"}]
 who_starts = bool(random.getrandbits(1))
 attack(who_starts)
 while len(players_hand) > 0 and len(bobbys_hand) > 0:
@@ -338,4 +372,3 @@ elif len(bobbys_hand) == 0 and len(players_hand) != 0:
 elif len(bobbys_hand) == 0 and len(players_hand) == 0:
     print("\n\n=+= IT'S A DRAW!!! BETTER LUCK NEXT TIME! +=+\n")
     sys.exit()
-# defense()
