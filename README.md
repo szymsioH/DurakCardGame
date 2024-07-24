@@ -16,7 +16,7 @@ Here are my plans for this project. Start with the bare minimum, end with a very
 - [x]  Adding a possibility to attack with more than 1 card of the same value.
 - [x]  Adding a possibility to attack again if the card on the table has the same value as our new attacking card.
 - [ ]  Adding more SI players.
-- [ ]  SI players will make smarter decisions (not defending with a too strong card).
+- [x]  SI players will make smarter decisions (not defending with a too strong card).
 
 **Ambitious Plans:**
 - [ ]  Create a simple GUI.
