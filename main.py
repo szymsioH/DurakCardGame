@@ -48,8 +48,9 @@ def cardTransfer(what, from_p, to_p):
 # Function that enables us to start a game
 def startGame():
     #deck.sort(key=lambda x: x["Value"]) #POTEM WYWALIĆ!!
-    [cardTransfer(deck[0], deck, bobbys_hand) for _ in range(6)]
-    [cardTransfer(deck[0], deck, players_hand) for _ in range(6)]
+    for i in range(0, 6):
+        cardTransfer(deck[0], deck, bobbys_hand)
+        cardTransfer(deck[0], deck, players_hand)
     players_hand.sort(key=lambda x: x["Value"])
     bobbys_hand.sort(key=lambda x: x["Value"])
     print("\nTrump card: |" + gl_card.get("Name") + "|")
@@ -67,14 +68,14 @@ def vision_full():
     print("A: ", [p["Name"] for p in table_atk])
     print("Your hand: ", [p["Name"] for p in players_hand])
     print("Bobby: ", [p["Name"] for p in bobbys_hand])
-    # print("Bobby has ", len(bobbys_hand), " cards")
+    #print("Bobby has ", len(bobbys_hand), " cards")
 
 
 # Function that grants us vision of our cards via cmd
 def vision_hand():
     print("\nYour hand: ", [p["Name"] for p in players_hand])
     print("Bobby: ", [p["Name"] for p in bobbys_hand])
-    # print("Bobby has ", len(bobbys_hand), " cards")
+    #print("Bobby has ", len(bobbys_hand), " cards")
 
 
 # Function that checks for cards of similar value
