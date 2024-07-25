@@ -15,8 +15,9 @@ Here are my plans for this project. Start with the bare minimum, end with a very
 **Simple Go To:**
 - [x]  Adding a possibility to attack with more than 1 card of the same value.
 - [x]  Adding a possibility to attack again if the card on the table has the same value as our new attacking card.
-- [ ]  Adding more SI players.
+- [x]  Adding more SI players. (other brench)
 - [x]  SI players will make smarter decisions (not defending with a too strong card).
+- [ ]  Adding an option to choose with how many SIs do you want to play. This option will also enlarge the deck if the number of bots is bigger.
 
 **Ambitious Plans:**
 - [ ]  Create a simple GUI.
