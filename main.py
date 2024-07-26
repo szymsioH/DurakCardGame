@@ -1,6 +1,7 @@
 from random import shuffle
 import random
 import sys
+import time
 
 cards_dict = {"Color": ["hearths", "diamonds", "clubs", "spades"], "Value": [6, 7, 8, 9, 10, 11, 12, 13, 14],
               "ValSymbol": ["6", "7", "8", "9", "10", "J", "D", "K", "A"], "ColSymbol": ["<3", "<>", "8-", "<)"]}
@@ -73,10 +74,11 @@ def vision_full():
     print("D: ", [p["Name"] for p in table_def])
     print("A: ", [p["Name"] for p in table_atk])
     print("Your hand: ", [p["Name"] for p in players_hand])
-    print("Bobby: ", [p["Name"] for p in bobbys_hand])
-    # print("Bobby has ", len(bobbys_hand), " cards")
-    print("Danny: ", [p["Name"] for p in dannys_hand])
-    # print("Danny has ", len(dannys_hand), " cards")
+    #print("Bobby: ", [p["Name"] for p in bobbys_hand])
+    print("Bobby has ", len(bobbys_hand), " cards")
+    #print("Danny: ", [p["Name"] for p in dannys_hand])
+    print("Danny has ", len(dannys_hand), " cards")
+    time.sleep(1)
 
 
 # Function that grants us vision of our cards via cmd
@@ -115,6 +117,7 @@ def checkForSim(hand, table):
     if len(sim_card_list) != 0:
         sim_card_list.sort(key=lambda x: x["Value"])
         return True
+    elif len(sim_card_list) == 0: return False
 
 
 # Function that specifies when it is not worth to perform an action by bots
@@ -160,7 +163,7 @@ def someMore(bot_or_not, hand, opponent_hand):
         else:
             return False
     elif bot_or_not == 'bot':
-        while len(sim_card_list) > 0 and len(table_atk) < len(players_hand) + 1:
+        while len(sim_card_list) > 0 and len(table_atk) < 5 and (len(table_atk)-len(table_def) < len(opponent_hand)):
             if (table_atk[-1]["Value"] == sim_card_list[0].get("Value")) or \
                     (table_atk[-1]["Value"] == sim_card_list[0].get("Value") - 10) or \
                     (table_atk[-1]["Value"] == sim_card_list[0].get("Value") + 10) and \
@@ -321,7 +324,6 @@ def defenseSI(si_hand, si_name):
         elif len(can_def_cards) != 0 and betterBots('defense', can_def_cards[0], table_atk[len(table_def)]):
             cardTransfer(si_hand[si_hand.index(can_def_cards[0])], si_hand, table_def)
             print("\n++ " + si_name + " defended with " + table_def[-1]["Name"] + "! ++")
-            vision_full()
             if_odbit = False
             p_def_phase = True
     if breaker: return
@@ -348,6 +350,7 @@ def defense():
                 who_atkd = 3
             else:
                 who_atkd = 2
+    vision_full()
     if if_odbit:
         discards()
     elif not if_odbit:
@@ -358,8 +361,9 @@ def defense():
 def discardsPlayer():
     global if_odbit
     global discard_flag
-    if (not checkForSim(players_hand, table_atk) and not checkForSim(players_hand, table_def)) \
-            or len(table_atk) == 5 or len(bobbys_hand) <= 1:
+    if ((not checkForSim(players_hand, table_atk) and not checkForSim(players_hand, table_def)) \
+            or len(table_atk) == 5 or len(bobbys_hand) <= 1):
+        ''' and len(table_atk) == len(table_def)'''
         table_atk.clear()
         table_def.clear()
         print("\n== Cards are discarded, can't counter ==")
@@ -399,24 +403,14 @@ def discardsPlayer():
 def discardsSI(si_hand, si_name):
     global if_odbit
     global discard_flag2
-    if (not checkForSim(si_hand, table_atk) and not checkForSim(si_hand, table_def)) \
-            or len(table_atk) == 5 or len(players_hand) <= 1 or \
-            any([betterBots('attack', d, table_atk[-1]) for d in sim_card_list]) is False or \
-            any([betterBots('attack', d, table_def[-1]) for d in sim_card_list]) is False:
+    if ((not checkForSim(si_hand, table_atk) and not checkForSim(si_hand, table_def))
+            or len(table_atk) == 5 or len(players_hand) <= 1 or
+            any([betterBots('attack', d, table_atk[-1]) for d in sim_card_list]) is False or
+            any([betterBots('attack', d, table_def[-1]) for d in sim_card_list]) is False):
+        '''and len(table_atk) == len(table_def):'''
         print("\n++ Cards are discarded by " + si_name + " ++")
         discard_flag2 = 0
     else:
-
-        cards_to_counter = []
-        '''for c in si_hand:
-            for t in table_atk:
-                if c["Value"] == t["Value"] or c["Value"] == t["Value"] + 10 or c["Value"] == t["Value"] - 10:
-                    cards_to_counter.append(c)
-            for t in table_def:
-                if (c["Value"] == t["Value"] or c["Value"] == t["Value"] + 10 or c["Value"] == t["Value"] - 10) \
-                        and (c not in cards_to_counter):
-                    cards_to_counter.append(c)'''
-
         checkForSim(si_hand, table_atk)
         cards_to_counter = []
         cards_to_counter = sim_card_list.copy()
@@ -434,7 +428,9 @@ def discardsSI(si_hand, si_name):
 def discards():
     global who_atkd
     global breaker
-    global if_odbit
+    global if_odbit, discard_flag, discard_flag2
+    discard_flag = 0
+    discard_flag2 = 0
     while if_odbit:
         if who_atkd == 1 and (len(table_atk) != 0 and len(table_def) != 0):  # PLAYER ATTACKED
             discardsPlayer()
@@ -451,13 +447,13 @@ def discards():
             if len(table_atk) < 5 and len(bobbys_hand) > 1:
                 discardsSI(bobbys_hand, "Bobby")
             who_atkd = 3
-        if discard_flag + discard_flag2 == 0:
+        if discard_flag + discard_flag2 == 0 and len(table_atk) == len(table_def):
             table_atk.clear()
             table_def.clear()
-            vision_full()
+            #vision_full()
             if_odbit = False
             endOfTurn()
-        elif discard_flag + discard_flag2 != 0:
+        elif discard_flag + discard_flag2 != 0 and len(table_atk) >= len(table_def):
             defense()
     if breaker: return
 
@@ -483,7 +479,6 @@ def endOfTurn():
     elif deck_empty:
         print("\n== End of turn. Deck empty. You drew " + str(0) + " cards ==\n")
     print(len(deck), " cards left")
-    # vision_hand()
     breaker = True
     return
 
